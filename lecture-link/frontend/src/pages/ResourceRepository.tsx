@@ -6,7 +6,8 @@ import {
   Filter,
   ChevronDown,
   Trash2,
-  X
+  X,
+  Eye
 } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
@@ -17,12 +18,44 @@ import { materialService, courseService } from '@/services/api';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+function PDFViewerModal({ material, onClose }: { material: Material; onClose: () => void }) {
+  const token = localStorage.getItem('token');
+  const pdfUrl = `${API_URL}/materials/${material.id}/view`;
+
+  return (
+    <div className="fixed inset-0 bg-black/70 z-50 flex flex-col">
+      <div className="flex items-center justify-between p-3 bg-[#012060] text-white flex-shrink-0">
+        <div className="flex items-center gap-3">
+          <FileText className="w-5 h-5" />
+          <span className="font-medium truncate max-w-[300px] sm:max-w-none">{material.title}</span>
+          <span className="text-blue-200 text-sm hidden sm:inline">({material.courseCode})</span>
+        </div>
+        <button
+          onClick={onClose}
+          className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+        >
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+      <iframe
+        src={`${pdfUrl}#toolbar=1`}
+        className="flex-1 w-full bg-gray-100"
+        title={material.title}
+        style={{ border: 'none' }}
+      />
+    </div>
+  );
+}
+
 export function ResourceRepository() {
   const [materials, setMaterials] = useState<Material[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCourse, setSelectedCourse] = useState('');
+  const [viewingMaterial, setViewingMaterial] = useState<Material | null>(null);
   const { user, hasRole } = useAuth();
 
   useEffect(() => {
@@ -112,6 +145,10 @@ export function ResourceRepository() {
       title="Resource Repository" 
       subtitle="Browse and download lecture materials."
     >
+      {/* PDF Viewer Modal */}
+      {viewingMaterial && (
+        <PDFViewerModal material={viewingMaterial} onClose={() => setViewingMaterial(null)} />
+      )}
       {/* Filters */}
       <Card className="border-0 shadow-sm mb-6">
         <CardContent className="p-4">
@@ -205,6 +242,17 @@ export function ResourceRepository() {
 
                   {/* Actions */}
                   <div className="flex items-center gap-2">
+                    {(material.isPdf || material.fileType === 'application/pdf' || material.originalName?.toLowerCase().endsWith('.pdf')) && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setViewingMaterial(material)}
+                        className="border-[#0158fe] text-[#0158fe] hover:bg-[#0158fe]/5"
+                      >
+                        <Eye className="w-4 h-4 mr-2" />
+                        View
+                      </Button>
+                    )}
                     <Button
                       size="sm"
                       onClick={() => handleDownload(material)}

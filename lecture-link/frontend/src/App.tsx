@@ -12,6 +12,7 @@ import { SearchPage } from '@/pages/SearchPage';
 import { CoursesPage } from '@/pages/CoursesPage';
 import { UsersPage } from '@/pages/UsersPage';
 import { Toaster } from '@/components/ui/sonner';
+import { LLAssistant } from '@/components/LLAssistant';
 import './App.css';
 
 // Simple router component
@@ -99,6 +100,7 @@ function App() {
     <AuthProvider>
       <Router />
       <Toaster position="top-right" />
+      <LLAssistant />
     </AuthProvider>
   );
 }

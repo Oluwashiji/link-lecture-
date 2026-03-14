@@ -90,11 +90,11 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
           className={`flex items-center gap-3 cursor-pointer ${isCollapsed ? 'justify-center w-full' : ''}`}
           onClick={() => navigate('/dashboard')}
         >
-          <div className="w-10 h-10 bg-[#0158fe] rounded-lg flex items-center justify-center flex-shrink-0">
-            <BookOpen className="w-6 h-6 text-white" />
+          <div className="w-10 h-10 bg-[#0158fe] rounded-full flex items-center justify-center flex-shrink-0 shadow-md">
+            <BookOpen className="w-5 h-5 text-white" />
           </div>
           {!isCollapsed && (
-            <span className="font-bold text-lg">LECTURE-LINK</span>
+            <span style={{ fontFamily: "'Playfair Display', serif", fontStyle: 'italic', fontWeight: 700, fontSize: '1.25rem', color: '#ffffff', letterSpacing: '0.02em' }}>LECTURE-LINK</span>
           )}
         </div>
         {!isCollapsed && (

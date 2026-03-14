@@ -140,11 +140,11 @@ export function LandingPage() {
         <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
             {/* Logo */}
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-[#0158fe] rounded-lg flex items-center justify-center">
-                <BookOpen className="w-6 h-6 text-white" />
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-[#0158fe] rounded-full flex items-center justify-center shadow-md">
+                <BookOpen className="w-5 h-5 text-white" />
               </div>
-              <span className="text-xl font-bold text-[#012060]">LECTURE-LINK</span>
+              <span style={{ fontFamily: "'Playfair Display', serif", fontStyle: 'italic', fontWeight: 700, fontSize: '1.5rem', color: '#0158fe', letterSpacing: '0.02em' }}>LECTURE-LINK</span>
             </div>
 
             {/* Desktop Navigation */}
@@ -550,16 +550,16 @@ export function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-[#012060] text-white py-16">
-        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+      <footer className="bg-[#012060] text-white py-16 w-full">
+        <div className="w-full px-8 sm:px-12 lg:px-20">
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-12">
             {/* Brand */}
             <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <div className="w-10 h-10 bg-[#0158fe] rounded-lg flex items-center justify-center">
-                  <BookOpen className="w-6 h-6 text-white" />
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-[#0158fe] rounded-full flex items-center justify-center shadow-md">
+                  <BookOpen className="w-5 h-5 text-white" />
                 </div>
-                <span className="text-xl font-bold">LECTURE-LINK</span>
+                <span style={{ fontFamily: "'Playfair Display', serif", fontStyle: 'italic', fontWeight: 700, fontSize: '1.5rem', color: '#ffffff', letterSpacing: '0.02em' }}>LECTURE-LINK</span>
               </div>
               <p className="text-white/70">
                 Empowering education through intelligent technology. Connect, learn, and grow with our AI-enhanced learning platform.
@@ -593,7 +593,7 @@ export function LandingPage() {
               <h4 className="font-semibold mb-4">Contact</h4>
               <ul className="space-y-2 text-white/70">
                 <li>info@lecturelink.edu.ng</li>
-                <li>+234 (0) 123-456-7890</li>
+                <li>+234 7081936853</li>
                 <li>Lead City University</li>
                 <li>Ibadan, Nigeria</li>
               </ul>
@@ -601,7 +601,7 @@ export function LandingPage() {
           </div>
 
           <div className="border-t border-white/20 mt-12 pt-8 text-center text-white/50">
-            <p>&copy; 2024 LECTURE-LINK. All rights reserved. Department of Computer Science, Lead City University.</p>
+            <p>&copy; 2026 LECTURE-LINK. All rights reserved. Department of Computer Science, Lead City University.</p>
           </div>
         </div>
       </footer>
