@@ -20,7 +20,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-function PDFViewerModal({ material, onClose }: { material: Material; onClose: () => void }) 
+function PDFViewerModal({ material, onClose }: { material: Material; onClose: () => void }) {
   const pdfUrl = `${API_URL}/materials/${material.id}/view`;
 
   return (
@@ -244,7 +244,7 @@ export function ResourceRepository() {
                     {(material.fileType === 'application/pdf' || material.originalName?.toLowerCase().endsWith('.pdf')) && (
                       <Button
                         size="sm"
-                        variant="outline" 
+                        variant="outline"
                         onClick={() => setViewingMaterial(material)}
                         className="border-[#0158fe] text-[#0158fe] hover:bg-[#0158fe]/5"
                       >
