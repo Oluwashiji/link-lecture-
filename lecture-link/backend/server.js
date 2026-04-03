@@ -18,7 +18,7 @@ require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-const JWT_SECRET = process.env.JWT_SECRET || 'lecture-link-secret-key-2024';
+const JWT_SECRET = process.env.JWT_SECRET || 'linkLecture2024secretkey';
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY || '' });
 
 // Middleware
