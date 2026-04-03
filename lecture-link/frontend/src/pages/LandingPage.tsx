@@ -220,7 +220,7 @@ export function LandingPage() {
           <img 
             src="/hero-waves.jpg" 
             alt="" 
-            className="absolute right-0 top-1/2 -translate-y-1/2 w-1/2 opacity-30"
+            className="absolute right-0 top-1/2 -translate-y-1/2 w-1/2 opacity-30 hidden sm:block"
           />
         </div>
 
@@ -284,7 +284,7 @@ export function LandingPage() {
             </div>
 
             {/* Hero Image */}
-            <div className="relative hidden lg:block">
+            <div className="relative hidden lg:block w-full">
               <div className="relative z-10">
                 <img 
                   src="/hero-students.jpg" 
@@ -592,7 +592,7 @@ export function LandingPage() {
             <div>
               <h4 className="font-semibold mb-4">Contact</h4>
               <ul className="space-y-2 text-white/70">
-                <li><a href="mailto:oluwashijibomii@yahoo.com" className="text-white/70 hover:text-white transition-colors">oluwashijibomii@yahoo.com</a></li>
+                <li><a href="mailto:inf0@lecturelink.edu.ng" className="text-white/70 hover:text-white transition-colors">inf0@lecturelink.edu.ng</a></li>
                 <li><a href="tel:07081936853" className="text-white/70 hover:text-white transition-colors">+234 (0) 708-193-6853</a></li>
                 <li>Lead City University</li>
                 <li>Ibadan, Nigeria</li>
