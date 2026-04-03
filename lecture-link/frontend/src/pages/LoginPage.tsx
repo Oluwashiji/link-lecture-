@@ -144,7 +144,7 @@ export function LoginPage() {
           <div className="mt-8 p-4 bg-[#f8f9ff] rounded-lg">
             <p className="text-sm font-medium text-[#012060] mb-2">Demo Credentials:</p>
             <div className="text-sm text-gray-600 space-y-1">
-              <p><span className="font-medium">Admin:</span> admin@lcu.edu.ng / admin123</p>
+              <p><span className="font-medium">Admin:</span> department@lcu.edu.ng / password123</p>
             </div>
           </div>
         </div>

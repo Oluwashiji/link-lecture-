@@ -550,7 +550,7 @@ export function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-[#012060] text-white py-16 w-full">
+      <footer className="bg-[#012060] text-white py-16" style={{ width: "100vw", marginLeft: "calc(50% - 50vw)" }}>
         <div className="w-full px-8 sm:px-12 lg:px-20">
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-12">
             {/* Brand */}
@@ -592,8 +592,8 @@ export function LandingPage() {
             <div>
               <h4 className="font-semibold mb-4">Contact</h4>
               <ul className="space-y-2 text-white/70">
-                <li>info@lecturelink.edu.ng</li>
-                <li>+234 7081936853</li>
+                <li><a href="mailto:oluwashijibomii@yahoo.com" className="text-white/70 hover:text-white transition-colors">oluwashijibomii@yahoo.com</a></li>
+                <li><a href="tel:07081936853" className="text-white/70 hover:text-white transition-colors">+234 (0) 708-193-6853</a></li>
                 <li>Lead City University</li>
                 <li>Ibadan, Nigeria</li>
               </ul>
