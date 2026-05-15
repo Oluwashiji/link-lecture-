@@ -1,6 +1,7 @@
 /**
  * LECTURE-LINK Backend Server
  * Features: Smart Search, LL Assistant (AI Chatbot), PDF Viewer, RBAC
+ * AI: Google Gemini (gemini-1.5-flash) — free tier
  */
 
 const express = require('express');
@@ -13,13 +14,15 @@ const fs = require('fs');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const morgan = require('morgan');
-const Anthropic = require('@anthropic-ai/sdk');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'linkLecture2024secretkey';
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY || '' });
+
+// Initialise Gemini client
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
 // Middleware
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
@@ -77,11 +80,11 @@ class JSONDatabase {
   }
 }
 
-const usersDB = new JSONDatabase('users.json');
-const coursesDB = new JSONDatabase('courses.json');
+const usersDB     = new JSONDatabase('users.json');
+const coursesDB   = new JSONDatabase('courses.json');
 const materialsDB = new JSONDatabase('materials.json');
 const downloadsDB = new JSONDatabase('downloads.json');
-const chatLogsDB = new JSONDatabase('chatlogs.json');
+const chatLogsDB  = new JSONDatabase('chatlogs.json');
 
 // ==================== MULTER ====================
 
@@ -127,22 +130,22 @@ function smartSearch(materials, query) {
   return materials
     .map(m => {
       let score = 0;
-      const title = (m.title || '').toLowerCase();
-      const desc = (m.description || '').toLowerCase();
-      const code = (m.courseCode || '').toLowerCase();
-      const tags = (m.tags || []).join(' ').toLowerCase();
+      const title    = (m.title        || '').toLowerCase();
+      const desc     = (m.description  || '').toLowerCase();
+      const code     = (m.courseCode   || '').toLowerCase();
+      const tags     = (m.tags         || []).join(' ').toLowerCase();
       const uploader = (m.uploaderName || '').toLowerCase();
 
       if (title.includes(q)) score += 100;
-      if (code.includes(q)) score += 80;
-      if (tags.includes(q)) score += 60;
-      if (desc.includes(q)) score += 40;
+      if (code.includes(q))  score += 80;
+      if (tags.includes(q))  score += 60;
+      if (desc.includes(q))  score += 40;
 
       terms.forEach(t => {
-        if (title.includes(t)) score += 30;
-        if (code.includes(t)) score += 25;
-        if (tags.includes(t)) score += 20;
-        if (desc.includes(t)) score += 10;
+        if (title.includes(t))    score += 30;
+        if (code.includes(t))     score += 25;
+        if (tags.includes(t))     score += 20;
+        if (desc.includes(t))     score += 10;
         if (uploader.includes(t)) score += 5;
       });
 
@@ -164,13 +167,17 @@ function smartCourseSearch(courses, query) {
   return courses
     .map(c => {
       let score = 0;
-      const code = (c.code || '').toLowerCase();
-      const title = (c.title || '').toLowerCase();
-      const desc = (c.description || '').toLowerCase();
-      if (code.includes(q)) score += 80;
+      const code  = (c.code        || '').toLowerCase();
+      const title = (c.title       || '').toLowerCase();
+      const desc  = (c.description || '').toLowerCase();
+      if (code.includes(q))  score += 80;
       if (title.includes(q)) score += 60;
-      if (desc.includes(q)) score += 20;
-      terms.forEach(t => { if (code.includes(t)) score += 25; if (title.includes(t)) score += 20; if (desc.includes(t)) score += 8; });
+      if (desc.includes(q))  score += 20;
+      terms.forEach(t => {
+        if (code.includes(t))  score += 25;
+        if (title.includes(t)) score += 20;
+        if (desc.includes(t))  score += 8;
+      });
       return { ...c, _score: score };
     })
     .filter(c => c._score > 0)
@@ -187,11 +194,11 @@ const initializeDefaultData = async () => {
   }
   if (coursesDB.findAll().length === 0) {
     [
-      { code: 'CSC 101', title: 'Introduction to Computer Science', description: 'Fundamentals of computing', department: 'Computer Science', level: '100' },
-      { code: 'CSC 201', title: 'Data Structures and Algorithms', description: 'Core computer science concepts', department: 'Computer Science', level: '200' },
-      { code: 'CSC 301', title: 'Database Management Systems', description: 'Relational databases and SQL', department: 'Computer Science', level: '300' },
-      { code: 'CSC 401', title: 'Software Engineering', description: 'Software development methodologies', department: 'Computer Science', level: '400' },
-      { code: 'CSC 405', title: 'Artificial Intelligence', description: 'AI and machine learning fundamentals', department: 'Computer Science', level: '400' }
+      { code: 'CSC 101', title: 'Introduction to Computer Science', description: 'Fundamentals of computing',          department: 'Computer Science', level: '100' },
+      { code: 'CSC 201', title: 'Data Structures and Algorithms',   description: 'Core computer science concepts',    department: 'Computer Science', level: '200' },
+      { code: 'CSC 301', title: 'Database Management Systems',      description: 'Relational databases and SQL',      department: 'Computer Science', level: '300' },
+      { code: 'CSC 401', title: 'Software Engineering',             description: 'Software development methodologies',department: 'Computer Science', level: '400' },
+      { code: 'CSC 405', title: 'Artificial Intelligence',          description: 'AI and machine learning fundamentals',department: 'Computer Science', level: '400' }
     ].forEach(c => coursesDB.create(c));
     console.log('Sample courses created');
   }
@@ -289,8 +296,8 @@ app.get('/api/materials', authenticateToken, (req, res) => {
   let materials = materialsDB.findAll();
   const downloads = downloadsDB.findAll();
 
-  if (courseCode) materials = materials.filter(m => m.courseCode === courseCode.toUpperCase());
-  if (lecturerId) materials = materials.filter(m => m.uploadedBy === lecturerId);
+  if (courseCode)  materials = materials.filter(m => m.courseCode === courseCode.toUpperCase());
+  if (lecturerId)  materials = materials.filter(m => m.uploadedBy === lecturerId);
   if (search) { materials = smartSearch(materials, search); }
   else { materials.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); }
 
@@ -363,27 +370,30 @@ app.get('/api/search', authenticateToken, (req, res) => {
   if (!q) return res.json({ materials: [], courses: [] });
   const downloads = downloadsDB.findAll();
   const materials = smartSearch(materialsDB.findAll(), q).map(m => ({ ...m, downloadCount: downloads.filter(d => d.materialId === m.id).length, isPdf: m.fileType === 'application/pdf' || m.originalName?.toLowerCase().endsWith('.pdf') }));
-  const courses = smartCourseSearch(coursesDB.findAll(), q);
+  const courses   = smartCourseSearch(coursesDB.findAll(), q);
   res.json({ materials, courses });
 });
 
-// ==================== LL ASSISTANT ====================
+// ==================== LL ASSISTANT (GEMINI) ====================
 
 app.post('/api/chat', authenticateToken, chatLimiter, async (req, res) => {
   try {
     const { message, conversationHistory = [] } = req.body;
     if (!message?.trim()) return res.status(400).json({ message: 'Message is required' });
 
-    if (!process.env.ANTHROPIC_API_KEY) {
-      return res.status(503).json({ message: 'LL Assistant is not configured yet.' });
+    if (!process.env.GEMINI_API_KEY) {
+      return res.status(503).json({ message: 'LL Assistant is not configured. Please add the GEMINI_API_KEY environment variable.' });
     }
 
-    const materials = materialsDB.findAll();
-    const courses = coursesDB.findAll();
+    // Build context from the repository
+    const materials         = materialsDB.findAll();
+    const courses           = coursesDB.findAll();
     const relevantMaterials = smartSearch(materials, message).slice(0, 5);
 
     const repoContext = relevantMaterials.length > 0
-      ? `Relevant materials in the repository:\n${relevantMaterials.map(m => `- "${m.title}" (${m.courseCode})${m.description ? ' — ' + m.description : ''}${m.tags?.length ? ' [Tags: ' + m.tags.join(', ') + ']' : ''}`).join('\n')}`
+      ? `Relevant materials in the repository:\n${relevantMaterials.map(m =>
+          `- "${m.title}" (${m.courseCode})${m.description ? ' — ' + m.description : ''}${m.tags?.length ? ' [Tags: ' + m.tags.join(', ') + ']' : ''}`
+        ).join('\n')}`
       : `Available courses: ${courses.map(c => `${c.code}: ${c.title}`).join(', ')}`;
 
     const systemPrompt = `You are LL Assistant, the intelligent academic support assistant for the Lecture-Link platform at Lead City University, Department of Computer Science. You are helpful, concise, and academically focused.
@@ -396,21 +406,50 @@ Your responsibilities:
 
 ${repoContext}
 
-When students ask about materials, reference what's available above. Keep responses clear and concise. Never mention Claude or Anthropic — you are LL Assistant, built into Lecture-Link.`;
+When students ask about materials, reference what's available above. Keep responses clear and concise. Never mention Gemini or Google — you are LL Assistant, built into Lecture-Link.`;
 
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 600,
-      system: systemPrompt,
-      messages: [...conversationHistory.slice(-6), { role: 'user', content: message }]
+    // Gemini expects history in its own format: {role, parts: [{text}]}
+    // Roles must alternate user/model; filter to last 6 turns
+    const history = conversationHistory
+      .slice(-6)
+      .map(m => ({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: m.content }]
+      }));
+
+    // Start a chat session with the history
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-1.5-flash',
+      systemInstruction: systemPrompt,
     });
 
-    const reply = response.content[0].text;
-    chatLogsDB.create({ userId: req.user.id, userRole: req.user.role, message, reply, timestamp: new Date().toISOString() });
+    const chat = model.startChat({ history });
+
+    const result = await chat.sendMessage(message);
+    const reply  = result.response.text();
+
+    // Log the interaction
+    chatLogsDB.create({
+      userId:   req.user.id,
+      userRole: req.user.role,
+      message,
+      reply,
+      timestamp: new Date().toISOString()
+    });
+
     res.json({ reply, role: 'assistant' });
+
   } catch (e) {
     console.error('Chat error:', e);
-    if (e.status === 401) return res.status(503).json({ message: 'LL Assistant configuration error.' });
+
+    // Surface helpful errors
+    if (e.status === 400 || e.message?.includes('API_KEY')) {
+      return res.status(503).json({ message: 'LL Assistant configuration error. Check your GEMINI_API_KEY.' });
+    }
+    if (e.status === 429) {
+      return res.status(429).json({ message: 'Too many requests. Please wait a moment and try again.' });
+    }
+
     res.status(500).json({ message: 'LL Assistant is temporarily unavailable. Please try again.' });
   }
 });
@@ -418,8 +457,25 @@ When students ask about materials, reference what's available above. Keep respon
 // ==================== ANALYTICS ====================
 
 app.get('/api/analytics/dashboard', authenticateToken, authorize('admin'), (req, res) => {
-  const users = usersDB.findAll(), materials = materialsDB.findAll(), downloads = downloadsDB.findAll(), courses = coursesDB.findAll(), chats = chatLogsDB.findAll();
-  res.json({ totalUsers: users.length, totalStudents: users.filter(u => u.role === 'student').length, totalLecturers: users.filter(u => u.role === 'lecturer').length, totalMaterials: materials.length, totalDownloads: downloads.length, totalCourses: courses.length, totalChatQueries: chats.length, recentUploads: materials.slice(-5).reverse(), popularMaterials: materials.map(m => ({ ...m, downloadCount: downloads.filter(d => d.materialId === m.id).length })).sort((a, b) => b.downloadCount - a.downloadCount).slice(0, 5) });
+  const users     = usersDB.findAll();
+  const materials = materialsDB.findAll();
+  const downloads = downloadsDB.findAll();
+  const courses   = coursesDB.findAll();
+  const chats     = chatLogsDB.findAll();
+  res.json({
+    totalUsers:      users.length,
+    totalStudents:   users.filter(u => u.role === 'student').length,
+    totalLecturers:  users.filter(u => u.role === 'lecturer').length,
+    totalMaterials:  materials.length,
+    totalDownloads:  downloads.length,
+    totalCourses:    courses.length,
+    totalChatQueries:chats.length,
+    recentUploads:   materials.slice(-5).reverse(),
+    popularMaterials:materials
+      .map(m => ({ ...m, downloadCount: downloads.filter(d => d.materialId === m.id).length }))
+      .sort((a, b) => b.downloadCount - a.downloadCount)
+      .slice(0, 5)
+  });
 });
 
 app.get('/api/analytics/lecturer', authenticateToken, authorize('lecturer', 'admin'), (req, res) => {
@@ -427,12 +483,22 @@ app.get('/api/analytics/lecturer', authenticateToken, authorize('lecturer', 'adm
   if (!lecturerId) return res.status(400).json({ message: 'Lecturer ID required' });
   const materials = materialsDB.findAll().filter(m => m.uploadedBy === lecturerId);
   const downloads = downloadsDB.findAll();
-  res.json({ totalUploads: materials.length, totalDownloads: materials.reduce((s, m) => s + downloads.filter(d => d.materialId === m.id).length, 0), materials: materials.map(m => ({ ...m, downloadCount: downloads.filter(d => d.materialId === m.id).length })).sort((a, b) => b.downloadCount - a.downloadCount) });
+  res.json({
+    totalUploads:   materials.length,
+    totalDownloads: materials.reduce((s, m) => s + downloads.filter(d => d.materialId === m.id).length, 0),
+    materials:      materials
+      .map(m => ({ ...m, downloadCount: downloads.filter(d => d.materialId === m.id).length }))
+      .sort((a, b) => b.downloadCount - a.downloadCount)
+  });
 });
 
 // ==================== HEALTH ====================
 
-app.get('/api/health', (req, res) => res.json({ status: 'OK', timestamp: new Date().toISOString(), llAssistant: !!process.env.ANTHROPIC_API_KEY }));
+app.get('/api/health', (req, res) => res.json({
+  status:      'OK',
+  timestamp:   new Date().toISOString(),
+  llAssistant: !!process.env.GEMINI_API_KEY
+}));
 
 app.use((req, res) => res.status(404).json({ message: 'Route not found' }));
 app.use((err, req, res, next) => {
@@ -446,7 +512,7 @@ app.use((err, req, res, next) => {
 app.listen(PORT, () => {
   console.log(`\n╔════════════════════════════════════════╗`);
   console.log(`║   LECTURE-LINK API Running on ${PORT}    ║`);
-  console.log(`║   LL Assistant: ${process.env.ANTHROPIC_API_KEY ? '✓ Ready' : '✗ No API Key'}          ║`);
+  console.log(`║   LL Assistant: ${process.env.GEMINI_API_KEY ? '✓ Gemini Ready  ' : '✗ No API Key    '}       ║`);
   console.log(`╚════════════════════════════════════════╝\n`);
   initializeDefaultData();
 });
