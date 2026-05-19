@@ -1,8 +1,17 @@
 import { useState } from 'react';
-import { 
-  BookOpen, LayoutDashboard, FolderOpen, Upload,
-  Search, Users, BookMarked, LogOut,
-  ChevronLeft, ChevronRight, GraduationCap, X
+import {
+  BookOpen,
+  LayoutDashboard,
+  FolderOpen,
+  Upload,
+  Search,
+  Users,
+  BookMarked,
+  LogOut,
+  ChevronLeft,
+  ChevronRight,
+  GraduationCap,
+  X
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -20,6 +29,7 @@ export function Sidebar({ isCollapsed, onToggle, isMobile = false }: SidebarProp
   const navigate = (path: string) => {
     setCurrentPath(path);
     (window as any).navigate(path);
+    // Always close sidebar on mobile after navigating
     if (isMobile) onToggle();
   };
 
@@ -40,39 +50,75 @@ export function Sidebar({ isCollapsed, onToggle, isMobile = false }: SidebarProp
     { label: 'Users',      icon: Users,            href: '/users',      roles: ['admin'] },
   ];
 
-  const filteredNavItems = navItems.filter(item => hasRole(item.roles as any));
+  const filteredNavItems = navItems.filter(item =>
+    hasRole(item.roles as any)
+  );
 
   return (
-    <aside className={`fixed left-0 top-0 h-full bg-[#012060] text-white transition-all duration-300 z-50 ${
-      isCollapsed ? 'w-20' : 'w-64'
-    }`}>
-      {/* Logo */}
+    <aside
+      className={`fixed left-0 top-0 h-full bg-[#012060] text-white transition-all duration-300 z-50 ${
+        isCollapsed ? 'w-20' : 'w-64'
+      }`}
+    >
+      {/* Header row: Logo + close/collapse button */}
       <div className="h-20 flex items-center justify-between px-4 border-b border-white/10">
         <div
-          className={`flex items-center gap-3 cursor-pointer ${isCollapsed ? 'justify-center w-full' : ''}`}
+          className={`flex items-center gap-3 cursor-pointer ${
+            isCollapsed ? 'justify-center w-full' : ''
+          }`}
           onClick={() => navigate('/dashboard')}
         >
           <div className="w-10 h-10 bg-[#0158fe] rounded-full flex items-center justify-center flex-shrink-0 shadow-md">
             <BookOpen className="w-5 h-5 text-white" />
           </div>
           {!isCollapsed && (
-            <span style={{ fontFamily: "'Playfair Display', serif", fontStyle: 'italic', fontWeight: 700, fontSize: '1.25rem', color: '#ffffff', letterSpacing: '0.02em' }}>
+            <span
+              style={{
+                fontFamily: "'Playfair Display', serif",
+                fontStyle: 'italic',
+                fontWeight: 700,
+                fontSize: '1.25rem',
+                color: '#ffffff',
+                letterSpacing: '0.02em'
+              }}
+            >
               LECTURE-LINK
             </span>
           )}
         </div>
-        {!isCollapsed && (
-          <button onClick={onToggle} className="p-1 hover:bg-white/10 rounded-lg transition-colors">
-            {isMobile ? <X className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
+
+        {/* 
+          Mobile: always show X to close the drawer.
+          Desktop expanded: show ChevronLeft to collapse to icon mode.
+          Desktop collapsed: nothing here (toggle button is the floating pill below).
+        */}
+        {isMobile ? (
+          <button
+            onClick={onToggle}
+            className="p-1 hover:bg-white/10 rounded-lg transition-colors flex-shrink-0"
+            aria-label="Close menu"
+          >
+            <X className="w-5 h-5" />
           </button>
+        ) : (
+          !isCollapsed && (
+            <button
+              onClick={onToggle}
+              className="p-1 hover:bg-white/10 rounded-lg transition-colors flex-shrink-0"
+              aria-label="Collapse sidebar"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+          )
         )}
       </div>
 
-      {/* Desktop collapsed toggle */}
+      {/* Desktop-only floating expand button when collapsed */}
       {isCollapsed && !isMobile && (
         <button
           onClick={onToggle}
           className="absolute -right-3 top-24 w-6 h-6 bg-[#0158fe] rounded-full flex items-center justify-center shadow-lg"
+          aria-label="Expand sidebar"
         >
           <ChevronRight className="w-4 h-4" />
         </button>
@@ -85,7 +131,9 @@ export function Sidebar({ isCollapsed, onToggle, isMobile = false }: SidebarProp
             key={item.href}
             onClick={() => navigate(item.href)}
             className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg transition-all ${
-              isActive(item.href) ? 'bg-[#0158fe] text-white' : 'text-white/70 hover:bg-white/10 hover:text-white'
+              isActive(item.href)
+                ? 'bg-[#0158fe] text-white'
+                : 'text-white/70 hover:bg-white/10 hover:text-white'
             } ${isCollapsed ? 'justify-center' : ''}`}
             title={isCollapsed ? item.label : undefined}
           >
@@ -95,7 +143,7 @@ export function Sidebar({ isCollapsed, onToggle, isMobile = false }: SidebarProp
         ))}
       </nav>
 
-      {/* Bottom Section */}
+      {/* Bottom: user info + logout */}
       <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-white/10">
         {!isCollapsed && (
           <div className="mb-4 px-3 py-3 bg-white/5 rounded-lg">
@@ -104,12 +152,15 @@ export function Sidebar({ isCollapsed, onToggle, isMobile = false }: SidebarProp
                 <GraduationCap className="w-5 h-5" />
               </div>
               <div className="overflow-hidden">
-                <p className="font-medium truncate">{user?.firstName} {user?.lastName}</p>
+                <p className="font-medium truncate">
+                  {user?.firstName} {user?.lastName}
+                </p>
                 <p className="text-xs text-white/60 capitalize">{user?.role}</p>
               </div>
             </div>
           </div>
         )}
+
         <button
           onClick={handleLogout}
           className={`w-full flex items-center gap-3 px-3 py-3 text-white/70 hover:bg-white/10 hover:text-white rounded-lg transition-all ${
