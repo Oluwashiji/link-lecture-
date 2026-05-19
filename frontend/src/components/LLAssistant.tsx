@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send, Bot, User, Loader2, Minimize2 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -9,6 +10,7 @@ interface Message {
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 export function LLAssistant() {
+  const { isAuthenticated } = useAuth();
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
@@ -34,44 +36,68 @@ export function LLAssistant() {
     }
   }, [isOpen, isMinimized]);
 
+  // Don't render if not logged in
+  if (!isAuthenticated) return null;
+
   const sendMessage = async () => {
     const msg = input.trim();
     if (!msg || isLoading) return;
 
     const userMessage: Message = { role: 'user', content: msg };
+
+    // Snapshot current messages BEFORE state update for history
+    const currentMessages = [...messages];
+
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
 
     try {
       const token = localStorage.getItem('token');
-      const conversationHistory = messages
-        .filter(m => m.role !== 'assistant' || messages.indexOf(m) > 0) // skip the greeting
-        .slice(-6)
+
+      if (!token) {
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: 'You need to be logged in to use LL Assistant. Please refresh the page and log in again.'
+        }]);
+        return;
+      }
+
+      // Build history from snapshot: skip the initial greeting (index 0), include everything else
+      const conversationHistory = currentMessages
+        .slice(1) // skip greeting at index 0
         .map(m => ({ role: m.role, content: m.content }));
 
       const response = await fetch(`${API_URL}/chat`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ message: msg, conversationHistory })
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        setMessages(prev => [...prev, { role: 'assistant', content: data.message || 'Sorry, something went wrong. Please try again.' }]);
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: data.message || 'Sorry, something went wrong. Please try again.'
+        }]);
       } else {
         setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
       }
     } catch {
-      setMessages(prev => [...prev, { role: 'assistant', content: 'I\'m having trouble connecting right now. Please check your connection and try again.' }]);
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: "I'm having trouble connecting right now. Please check your connection and try again."
+      }]);
     } finally {
       setIsLoading(false);
     }
   };
 
   const formatMessage = (text: string) => {
-    // Simple markdown-like formatting
     return text
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.*?)\*/g, '<em>$1</em>')
