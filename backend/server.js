@@ -408,22 +408,26 @@ ${repoContext}
 
 When students ask about materials, reference what's available above. Keep responses clear and concise. Never mention Gemini or Google — you are LL Assistant, built into Lecture-Link.`;
 
-    // Gemini expects history in its own format: {role, parts: [{text}]}
-    // Roles must alternate user/model; filter to last 6 turns
-    const history = conversationHistory
+    // Gemini requires history to start with 'user' role and alternate properly.
+    // Filter out any leading 'model' turns to avoid API errors.
+    const rawHistory = conversationHistory
       .slice(-6)
       .map(m => ({
         role: m.role === 'assistant' ? 'model' : 'user',
         parts: [{ text: m.content }]
       }));
 
-    // Start a chat session with the history
+    // Drop leading model messages — Gemini requires history to start with user
+    while (rawHistory.length > 0 && rawHistory[0].role === 'model') {
+      rawHistory.shift();
+    }
+
     const model = genAI.getGenerativeModel({
       model: 'gemini-1.5-flash',
       systemInstruction: systemPrompt,
     });
 
-    const chat = model.startChat({ history });
+    const chat = model.startChat({ history: rawHistory });
 
     const result = await chat.sendMessage(message);
     const reply  = result.response.text();
@@ -440,17 +444,22 @@ When students ask about materials, reference what's available above. Keep respon
     res.json({ reply, role: 'assistant' });
 
   } catch (e) {
-    console.error('Chat error:', e);
+    console.error('Chat error full:', e?.message, e?.status, e?.statusText);
 
-    // Surface helpful errors
-    if (e.status === 400 || e.message?.includes('API_KEY')) {
+    const msg    = e?.message || '';
+    const status = e?.status || e?.response?.status || 0;
+
+    if (status === 400 || msg.includes('API_KEY') || msg.toLowerCase().includes('api key') || msg.toLowerCase().includes('invalid')) {
       return res.status(503).json({ message: 'LL Assistant configuration error. Check your GEMINI_API_KEY.' });
     }
-    if (e.status === 429) {
+    if (status === 403) {
+      return res.status(503).json({ message: 'LL Assistant configuration error. The API key is invalid or lacks permissions.' });
+    }
+    if (status === 429) {
       return res.status(429).json({ message: 'Too many requests. Please wait a moment and try again.' });
     }
 
-    res.status(500).json({ message: 'LL Assistant is temporarily unavailable. Please try again.' });
+    res.status(500).json({ message: `LL Assistant error: ${msg || 'Unknown error. Check Render logs.'}` });
   }
 });
 

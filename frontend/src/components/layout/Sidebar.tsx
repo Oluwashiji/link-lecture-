@@ -1,17 +1,8 @@
 import { useState } from 'react';
 import { 
-  BookOpen, 
-  LayoutDashboard, 
-  FolderOpen, 
-  Upload, 
-  Search, 
-  Users, 
-  BookMarked,
-  LogOut,
-  ChevronLeft,
-  ChevronRight,
-  GraduationCap,
-  X
+  BookOpen, LayoutDashboard, FolderOpen, Upload,
+  Search, Users, BookMarked, LogOut,
+  ChevronLeft, ChevronRight, GraduationCap, X
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -29,7 +20,6 @@ export function Sidebar({ isCollapsed, onToggle, isMobile = false }: SidebarProp
   const navigate = (path: string) => {
     setCurrentPath(path);
     (window as any).navigate(path);
-    // Close mobile sidebar after navigation
     if (isMobile) onToggle();
   };
 
@@ -53,14 +43,12 @@ export function Sidebar({ isCollapsed, onToggle, isMobile = false }: SidebarProp
   const filteredNavItems = navItems.filter(item => hasRole(item.roles as any));
 
   return (
-    <aside 
-      className={`fixed left-0 top-0 h-full bg-[#012060] text-white transition-all duration-300 z-50 ${
-        isCollapsed ? 'w-20' : 'w-64'
-      }`}
-    >
+    <aside className={`fixed left-0 top-0 h-full bg-[#012060] text-white transition-all duration-300 z-50 ${
+      isCollapsed ? 'w-20' : 'w-64'
+    }`}>
       {/* Logo */}
       <div className="h-20 flex items-center justify-between px-4 border-b border-white/10">
-        <div 
+        <div
           className={`flex items-center gap-3 cursor-pointer ${isCollapsed ? 'justify-center w-full' : ''}`}
           onClick={() => navigate('/dashboard')}
         >
@@ -73,21 +61,16 @@ export function Sidebar({ isCollapsed, onToggle, isMobile = false }: SidebarProp
             </span>
           )}
         </div>
-
-        {/* Mobile: show X close button. Desktop: show ChevronLeft when expanded */}
         {!isCollapsed && (
-          <button 
-            onClick={onToggle}
-            className="p-1 hover:bg-white/10 rounded-lg transition-colors"
-          >
+          <button onClick={onToggle} className="p-1 hover:bg-white/10 rounded-lg transition-colors">
             {isMobile ? <X className="w-5 h-5" /> : <ChevronLeft className="w-5 h-5" />}
           </button>
         )}
       </div>
 
-      {/* Desktop-only: expand toggle when collapsed */}
+      {/* Desktop collapsed toggle */}
       {isCollapsed && !isMobile && (
-        <button 
+        <button
           onClick={onToggle}
           className="absolute -right-3 top-24 w-6 h-6 bg-[#0158fe] rounded-full flex items-center justify-center shadow-lg"
         >
@@ -102,9 +85,7 @@ export function Sidebar({ isCollapsed, onToggle, isMobile = false }: SidebarProp
             key={item.href}
             onClick={() => navigate(item.href)}
             className={`w-full flex items-center gap-3 px-3 py-3 rounded-lg transition-all ${
-              isActive(item.href)
-                ? 'bg-[#0158fe] text-white'
-                : 'text-white/70 hover:bg-white/10 hover:text-white'
+              isActive(item.href) ? 'bg-[#0158fe] text-white' : 'text-white/70 hover:bg-white/10 hover:text-white'
             } ${isCollapsed ? 'justify-center' : ''}`}
             title={isCollapsed ? item.label : undefined}
           >
@@ -129,7 +110,6 @@ export function Sidebar({ isCollapsed, onToggle, isMobile = false }: SidebarProp
             </div>
           </div>
         )}
-
         <button
           onClick={handleLogout}
           className={`w-full flex items-center gap-3 px-3 py-3 text-white/70 hover:bg-white/10 hover:text-white rounded-lg transition-all ${

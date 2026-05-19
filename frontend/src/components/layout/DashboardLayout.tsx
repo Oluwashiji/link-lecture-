@@ -40,10 +40,10 @@ export function DashboardLayout({ children, title, subtitle }: DashboardLayoutPr
 
       {/* Mobile Sidebar */}
       <div className={`lg:hidden fixed left-0 top-0 h-full z-50 transition-transform duration-300 ${
-        mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-      }`}>
-        <Sidebar isCollapsed={false} onToggle={() => setMobileMenuOpen(false)} isMobile={true} />
-      </div>
+  mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+}`}>
+  <Sidebar isCollapsed={false} onToggle={() => setMobileMenuOpen(false)} isMobile={true} />
+</div>
 
       {/* Main Content */}
       <main 
