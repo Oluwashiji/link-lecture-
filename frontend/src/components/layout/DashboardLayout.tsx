@@ -23,7 +23,7 @@ export function DashboardLayout({ children, title, subtitle }: DashboardLayoutPr
   return (
     <div className="min-h-screen bg-[#f8f9ff]">
 
-      {/* Desktop Sidebar */}
+      {/* ── DESKTOP sidebar (hidden on mobile) ── */}
       <div className="hidden lg:block">
         <Sidebar
           isCollapsed={sidebarCollapsed}
@@ -32,17 +32,17 @@ export function DashboardLayout({ children, title, subtitle }: DashboardLayoutPr
         />
       </div>
 
-      {/* Mobile Overlay — clicking it closes the sidebar */}
+      {/* ── MOBILE dark overlay — tap to close ── */}
       {mobileMenuOpen && (
         <div
-          className="lg:hidden fixed inset-0 bg-black/50 z-40"
+          className="fixed inset-0 bg-black/60 z-40 lg:hidden"
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
 
-      {/* Mobile Sidebar */}
+      {/* ── MOBILE sidebar drawer ── */}
       <div
-        className={`lg:hidden fixed left-0 top-0 h-full z-50 transition-transform duration-300 ${
+        className={`fixed top-0 left-0 h-full z-50 lg:hidden transition-transform duration-300 ease-in-out ${
           mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -53,35 +53,28 @@ export function DashboardLayout({ children, title, subtitle }: DashboardLayoutPr
         />
       </div>
 
-      {/* Main Content */}
-      <main
-        className={`transition-all duration-300 ${
-          sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'
-        }`}
-      >
+      {/* ── MAIN content ── */}
+      <main className={`transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'}`}>
+
         {/* Header */}
         <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
           <div className="px-4 sm:px-6 lg:px-8 py-4">
             <div className="flex items-center justify-between">
 
-              {/* Left Side */}
               <div className="flex items-center gap-4">
-                {/* Hamburger — only on mobile */}
+                {/* Hamburger — mobile only */}
                 <button
                   className="lg:hidden p-2 hover:bg-gray-100 rounded-lg"
                   onClick={() => setMobileMenuOpen(true)}
                 >
-                  <Menu className="w-6 h-6" />
+                  <Menu className="w-6 h-6 text-[#012060]" />
                 </button>
                 <div>
                   <h1 className="text-xl sm:text-2xl font-bold text-[#012060]">{title}</h1>
-                  {subtitle && (
-                    <p className="text-sm text-gray-500 hidden sm:block">{subtitle}</p>
-                  )}
+                  {subtitle && <p className="text-sm text-gray-500 hidden sm:block">{subtitle}</p>}
                 </div>
               </div>
 
-              {/* Right Side */}
               <div className="flex items-center gap-4">
                 <div className="hidden md:flex items-center relative">
                   <Search className="absolute left-3 w-4 h-4 text-gray-400" />
@@ -96,12 +89,10 @@ export function DashboardLayout({ children, title, subtitle }: DashboardLayoutPr
                     }}
                   />
                 </div>
-
                 <Button variant="ghost" size="icon" className="relative">
                   <Bell className="w-5 h-5" />
-                  <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                  <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
                 </Button>
-
                 <div className="w-10 h-10 bg-[#0158fe] rounded-full flex items-center justify-center text-white font-medium">
                   {user?.firstName?.[0]}{user?.lastName?.[0]}
                 </div>
@@ -111,7 +102,6 @@ export function DashboardLayout({ children, title, subtitle }: DashboardLayoutPr
           </div>
         </header>
 
-        {/* Page Content */}
         <div className="p-4 sm:p-6 lg:p-8">
           {children}
         </div>
