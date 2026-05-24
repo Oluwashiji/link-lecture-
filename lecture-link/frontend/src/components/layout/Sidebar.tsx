@@ -1,16 +1,17 @@
 import { useState } from 'react';
-import { 
-  BookOpen, 
-  LayoutDashboard, 
-  FolderOpen, 
-  Upload, 
-  Search, 
-  Users, 
+import {
+  BookOpen,
+  LayoutDashboard,
+  FolderOpen,
+  Upload,
+  Search,
+  Users,
   BookMarked,
   LogOut,
   ChevronLeft,
   ChevronRight,
-  GraduationCap
+  GraduationCap,
+  X
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
@@ -18,75 +19,47 @@ import { toast } from 'sonner';
 interface SidebarProps {
   isCollapsed: boolean;
   onToggle: () => void;
+  isMobile?: boolean;
 }
 
-export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
+export function Sidebar({ isCollapsed, onToggle, isMobile = false }: SidebarProps) {
   const { user, logout, hasRole } = useAuth();
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
 
   const navigate = (path: string) => {
     setCurrentPath(path);
     (window as any).navigate(path);
+    if (isMobile) onToggle();
   };
 
   const handleLogout = () => {
     logout();
     toast.success('Logged out successfully');
-    navigate('/login');
+    (window as any).navigate('/login');
   };
 
   const isActive = (path: string) => currentPath === path;
 
   const navItems = [
-    {
-      label: 'Dashboard',
-      icon: LayoutDashboard,
-      href: '/dashboard',
-      roles: ['student', 'lecturer', 'admin']
-    },
-    {
-      label: 'Resources',
-      icon: FolderOpen,
-      href: '/resources',
-      roles: ['student', 'lecturer', 'admin']
-    },
-    {
-      label: 'Search',
-      icon: Search,
-      href: '/search',
-      roles: ['student', 'lecturer', 'admin']
-    },
-    {
-      label: 'Upload',
-      icon: Upload,
-      href: '/upload',
-      roles: ['lecturer', 'admin']
-    },
-    {
-      label: 'Courses',
-      icon: BookMarked,
-      href: '/courses',
-      roles: ['lecturer', 'admin']
-    },
-    {
-      label: 'Users',
-      icon: Users,
-      href: '/users',
-      roles: ['admin']
-    }
+    { label: 'Dashboard', icon: LayoutDashboard, href: '/dashboard', roles: ['student', 'lecturer', 'admin'] },
+    { label: 'Resources',  icon: FolderOpen,      href: '/resources',  roles: ['student', 'lecturer', 'admin'] },
+    { label: 'Search',     icon: Search,           href: '/search',     roles: ['student', 'lecturer', 'admin'] },
+    { label: 'Upload',     icon: Upload,           href: '/upload',     roles: ['lecturer', 'admin'] },
+    { label: 'Courses',    icon: BookMarked,       href: '/courses',    roles: ['lecturer', 'admin'] },
+    { label: 'Users',      icon: Users,            href: '/users',      roles: ['admin'] },
   ];
 
   const filteredNavItems = navItems.filter(item => hasRole(item.roles as any));
 
   return (
-    <aside 
+    <aside
       className={`fixed left-0 top-0 h-full bg-[#012060] text-white transition-all duration-300 z-50 ${
         isCollapsed ? 'w-20' : 'w-64'
       }`}
     >
-      {/* Logo */}
+      {/* Header */}
       <div className="h-20 flex items-center justify-between px-4 border-b border-white/10">
-        <div 
+        <div
           className={`flex items-center gap-3 cursor-pointer ${isCollapsed ? 'justify-center w-full' : ''}`}
           onClick={() => navigate('/dashboard')}
         >
@@ -94,22 +67,36 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
             <BookOpen className="w-5 h-5 text-white" />
           </div>
           {!isCollapsed && (
-            <span style={{ fontFamily: "'Playfair Display', serif", fontStyle: 'italic', fontWeight: 700, fontSize: '1.25rem', color: '#ffffff', letterSpacing: '0.02em' }}>LECTURE-LINK</span>
+            <span style={{
+              fontFamily: "'Playfair Display', serif",
+              fontStyle: 'italic',
+              fontWeight: 700,
+              fontSize: '1.25rem',
+              color: '#ffffff',
+              letterSpacing: '0.02em'
+            }}>
+              LECTURE-LINK
+            </span>
           )}
         </div>
+
+        {/* Close button — X on mobile, ChevronLeft on desktop */}
         {!isCollapsed && (
-          <button 
+          <button
             onClick={onToggle}
-            className="p-1 hover:bg-white/10 rounded-lg transition-colors"
+            className="p-1 hover:bg-white/10 rounded-lg transition-colors flex-shrink-0"
           >
-            <ChevronLeft className="w-5 h-5" />
+            {isMobile
+              ? <X className="w-5 h-5" />
+              : <ChevronLeft className="w-5 h-5" />
+            }
           </button>
         )}
       </div>
 
-      {/* Toggle button when collapsed */}
-      {isCollapsed && (
-        <button 
+      {/* Desktop expand button when collapsed */}
+      {isCollapsed && !isMobile && (
+        <button
           onClick={onToggle}
           className="absolute -right-3 top-24 w-6 h-6 bg-[#0158fe] rounded-full flex items-center justify-center shadow-lg"
         >
@@ -136,9 +123,8 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
         ))}
       </nav>
 
-      {/* Bottom Section */}
+      {/* Bottom */}
       <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-white/10">
-        {/* User Info */}
         {!isCollapsed && (
           <div className="mb-4 px-3 py-3 bg-white/5 rounded-lg">
             <div className="flex items-center gap-3">
@@ -152,8 +138,6 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
             </div>
           </div>
         )}
-
-        {/* Logout */}
         <button
           onClick={handleLogout}
           className={`w-full flex items-center gap-3 px-3 py-3 text-white/70 hover:bg-white/10 hover:text-white rounded-lg transition-all ${
