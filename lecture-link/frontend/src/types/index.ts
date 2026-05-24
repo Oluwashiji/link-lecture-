@@ -8,6 +8,9 @@ export interface User {
   email: string;
   role: UserRole;
   department: string;
+  level?: string;                    // students: '100'|'200'|'300'|'400'|'500'
+  teachingDepartments?: string[];    // lecturers: departments they teach
+  teachingCourses?: string[];        // lecturers: course codes they teach
   matricNumber?: string;
   isActive?: boolean;
   createdAt?: string;
@@ -25,6 +28,9 @@ export interface RegisterData {
   password: string;
   role: UserRole;
   department: string;
+  level?: string;
+  teachingDepartments?: string[];
+  teachingCourses?: string[];
   matricNumber?: string;
 }
 
@@ -50,8 +56,13 @@ export interface Material {
   fileSize: number;
   fileType: string;
   uploadedBy: string;
+  uploaderName?: string;
   uploader?: string;
   downloadCount: number;
+  targetDepartments: string[];  // which departments can see this
+  targetLevel: string;          // which level can see this
+  tags?: string[];
+  isPdf?: boolean;
   createdAt?: string;
 }
 
@@ -59,6 +70,9 @@ export interface UploadMaterialData {
   title: string;
   description?: string;
   courseCode: string;
+  targetDepartments: string[];
+  targetLevel: string;
+  tags?: string;
   file: File;
 }
 
@@ -78,6 +92,7 @@ export interface DashboardStats {
   totalMaterials: number;
   totalDownloads: number;
   totalCourses: number;
+  totalChatQueries: number;
   recentUploads: Material[];
   popularMaterials: Material[];
 }
@@ -110,20 +125,14 @@ export interface NavItem {
   roles?: UserRole[];
 }
 
-// Testimonial Types
-export interface Testimonial {
-  id: string;
-  name: string;
-  role: string;
-  quote: string;
-  image: string;
-  rating: number;
-}
+export const DEPARTMENTS = [
+  'Computer Science',
+  'Information Technology',
+  'Software Engineering',
+  'Cybersecurity',
+] as const;
 
-// Feature Types
-export interface Feature {
-  id: string;
-  title: string;
-  description: string;
-  icon: string;
-}
+export const LEVELS = ['100', '200', '300', '400', '500'] as const;
+
+export type Department = typeof DEPARTMENTS[number];
+export type Level = typeof LEVELS[number];
