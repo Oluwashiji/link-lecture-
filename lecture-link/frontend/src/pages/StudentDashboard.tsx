@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Upload, X, CheckCircle, AlertCircle, Plus } from 'lucide-react';
+import { Upload, X, CheckCircle, AlertCircle} from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
