@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from 'react';
-import { MessageCircle, X, Send, Bot, User, Loader2, ChevronDown } from 'lucide-react';
 
 interface Message {
   role: 'user' | 'assistant';
