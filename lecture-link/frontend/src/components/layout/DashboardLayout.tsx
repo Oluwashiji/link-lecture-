@@ -4,6 +4,7 @@ import { Bell, Search, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -15,6 +16,7 @@ export function DashboardLayout({ children, title, subtitle }: DashboardLayoutPr
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user } = useAuth();
+  const isMobile = useIsMobile();
 
   const navigate = (path: string) => {
     (window as any).navigate(path);
@@ -23,79 +25,90 @@ export function DashboardLayout({ children, title, subtitle }: DashboardLayoutPr
   return (
     <div className="min-h-screen bg-[#f8f9ff]">
 
-      {/* Desktop Sidebar - only shows on lg screens and above */}
-      <div className="hidden lg:block">
+      {isMobile ? (
+        <>
+          {/* Mobile: dark overlay when sidebar is open */}
+          {mobileMenuOpen && (
+            <div
+              className="fixed inset-0 bg-black/60 z-40"
+              onClick={() => setMobileMenuOpen(false)}
+            />
+          )}
+
+          {/* Mobile: sidebar slides in/out */}
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              height: '100%',
+              zIndex: 50,
+              transform: mobileMenuOpen ? 'translateX(0)' : 'translateX(-100%)',
+              transition: 'transform 0.3s ease-in-out',
+            }}
+          >
+            <Sidebar
+              isCollapsed={false}
+              onToggle={() => setMobileMenuOpen(false)}
+              isMobile={true}
+            />
+          </div>
+        </>
+      ) : (
+        /* Desktop: always visible, collapsible */
         <Sidebar
           isCollapsed={sidebarCollapsed}
           onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
           isMobile={false}
         />
-      </div>
-
-      {/* Mobile dark overlay - tap anywhere to close */}
-      {mobileMenuOpen && (
-        <div
-          className="lg:hidden fixed inset-0 bg-black/60 z-40"
-          onClick={() => setMobileMenuOpen(false)}
-        />
       )}
-
-      {/* Mobile Sidebar drawer - slides in from left */}
-      <div
-        className={`lg:hidden fixed left-0 top-0 h-full z-50 transition-transform duration-300 ease-in-out ${
-          mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
-      >
-        <Sidebar
-          isCollapsed={false}
-          onToggle={() => setMobileMenuOpen(false)}
-          isMobile={true}
-        />
-      </div>
 
       {/* Main Content */}
       <main
-        className={`transition-all duration-300 ${
-          sidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'
-        }`}
+        style={{
+          marginLeft: isMobile ? 0 : sidebarCollapsed ? '80px' : '256px',
+          transition: 'margin-left 0.3s ease-in-out',
+        }}
       >
         {/* Header */}
         <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
           <div className="px-4 sm:px-6 lg:px-8 py-4">
             <div className="flex items-center justify-between">
 
-              {/* Left Side */}
               <div className="flex items-center gap-4">
-                {/* Hamburger - only visible on mobile */}
-                <button
-                  className="lg:hidden p-2 hover:bg-gray-100 rounded-lg"
-                  onClick={() => setMobileMenuOpen(true)}
-                >
-                  <Menu className="w-6 h-6 text-[#012060]" />
-                </button>
+                {/* Hamburger — only on mobile */}
+                {isMobile && (
+                  <button
+                    className="p-2 hover:bg-gray-100 rounded-lg"
+                    onClick={() => setMobileMenuOpen(true)}
+                  >
+                    <Menu className="w-6 h-6 text-[#012060]" />
+                  </button>
+                )}
                 <div>
                   <h1 className="text-xl sm:text-2xl font-bold text-[#012060]">{title}</h1>
                   {subtitle && (
-                    <p className="text-sm text-gray-500 hidden sm:block">{subtitle}</p>
+                    <p className="text-sm text-gray-500">{subtitle}</p>
                   )}
                 </div>
               </div>
 
-              {/* Right Side */}
               <div className="flex items-center gap-4">
-                <div className="hidden md:flex items-center relative">
-                  <Search className="absolute left-3 w-4 h-4 text-gray-400" />
-                  <Input
-                    type="text"
-                    placeholder="Quick search..."
-                    className="pl-10 w-64"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        navigate(`/search?q=${(e.target as HTMLInputElement).value}`);
-                      }
-                    }}
-                  />
-                </div>
+                {!isMobile && (
+                  <div className="flex items-center relative">
+                    <Search className="absolute left-3 w-4 h-4 text-gray-400" />
+                    <Input
+                      type="text"
+                      placeholder="Quick search..."
+                      className="pl-10 w-64"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          navigate(`/search?q=${(e.target as HTMLInputElement).value}`);
+                        }
+                      }}
+                    />
+                  </div>
+                )}
 
                 <Button variant="ghost" size="icon" className="relative">
                   <Bell className="w-5 h-5" />
