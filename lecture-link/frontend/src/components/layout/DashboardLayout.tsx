@@ -26,7 +26,6 @@ export function DashboardLayout({ children, title, subtitle }: DashboardLayoutPr
     if (isDesktop) setMobileMenuOpen(false);
   }, [isDesktop]);
 
-
   return (
     <div className="min-h-screen bg-[#f8f9ff]">
 
@@ -75,7 +74,6 @@ export function DashboardLayout({ children, title, subtitle }: DashboardLayoutPr
           <div className="px-4 py-3">
             <div className="flex items-center justify-between">
 
-              {/* Left: hamburger + title */}
               <div className="flex items-center gap-3 min-w-0">
                 {!isDesktop && (
                   <button
@@ -93,7 +91,6 @@ export function DashboardLayout({ children, title, subtitle }: DashboardLayoutPr
                 </div>
               </div>
 
-              {/* Right: bell + avatar */}
               <div className="flex items-center gap-2 flex-shrink-0 ml-2">
                 <Button variant="ghost" size="icon" className="relative w-9 h-9">
                   <Bell className="w-4 h-4" />
@@ -108,7 +105,6 @@ export function DashboardLayout({ children, title, subtitle }: DashboardLayoutPr
           </div>
         </header>
 
-        {/* Page Content */}
         <div className="p-4">
           {children}
         </div>
