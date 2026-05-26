@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { MessageCircle, X, Send, Bot, User, Loader2, Minimize2 } from 'lucide-react';
+import { MessageCircle, X, Send, Bot, User, Loader2, ChevronDown } from 'lucide-react';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -10,172 +10,347 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 export function LLAssistant() {
   const [isOpen, setIsOpen] = useState(false);
-  const [isMinimized, setIsMinimized] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: "Hi! I'm **LL Assistant**, your academic support assistant for Lecture-Link. I can help you find course materials, answer Computer Science questions, and guide you around the platform. How can I help you today?"
+      content: "Hi! I'm **LL Assistant**, your academic support assistant for Lecture-Link. I can help you find course materials, answer questions, and guide you around the platform. How can I help?"
     }
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 640);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (isOpen && !isMinimized) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [messages, isOpen, isMinimized]);
+    const handleResize = () => setIsDesktop(window.innerWidth >= 640);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
-    if (isOpen && !isMinimized) {
+    if (isOpen) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, isOpen]);
+
+  useEffect(() => {
+    if (isOpen) {
       setTimeout(() => inputRef.current?.focus(), 100);
     }
-  }, [isOpen, isMinimized]);
+  }, [isOpen]);
 
   const sendMessage = async () => {
     const msg = input.trim();
     if (!msg || isLoading) return;
 
-    const userMessage: Message = { role: 'user', content: msg };
-    setMessages(prev => [...prev, userMessage]);
+    const currentMessages = [...messages];
+    setMessages(prev => [...prev, { role: 'user', content: msg }]);
     setInput('');
     setIsLoading(true);
 
     try {
       const token = localStorage.getItem('token');
-      const conversationHistory = messages
-        .filter(m => m.role !== 'assistant' || messages.indexOf(m) > 0) // skip the greeting
-        .slice(-6)
+      if (!token) {
+        setMessages(prev => [...prev, {
+          role: 'assistant',
+          content: 'You need to be logged in to use LL Assistant. Please refresh and log in again.'
+        }]);
+        return;
+      }
+
+      const conversationHistory = currentMessages
+        .slice(1)
         .map(m => ({ role: m.role, content: m.content }));
 
       const response = await fetch(`${API_URL}/chat`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ message: msg, conversationHistory })
       });
 
       const data = await response.json();
-
-      if (!response.ok) {
-        setMessages(prev => [...prev, { role: 'assistant', content: data.message || 'Sorry, something went wrong. Please try again.' }]);
-      } else {
-        setMessages(prev => [...prev, { role: 'assistant', content: data.reply }]);
-      }
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: data.reply || data.message || 'Sorry, something went wrong.'
+      }]);
     } catch {
-      setMessages(prev => [...prev, { role: 'assistant', content: 'I\'m having trouble connecting right now. Please check your connection and try again.' }]);
+      setMessages(prev => [...prev, {
+        role: 'assistant',
+        content: "I'm having trouble connecting. Please try again."
+      }]);
     } finally {
       setIsLoading(false);
     }
   };
 
   const formatMessage = (text: string) => {
-    // Simple markdown-like formatting
     return text
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.*?)\*/g, '<em>$1</em>')
       .replace(/\n/g, '<br/>');
   };
 
+  // ── MOBILE: full screen overlay ──
+  const mobileStyle: React.CSSProperties = {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 9999,
+    display: 'flex',
+    flexDirection: 'column',
+    backgroundColor: 'white',
+  };
+
+  // ── DESKTOP: bottom-right floating panel ──
+  const desktopStyle: React.CSSProperties = {
+    position: 'fixed',
+    bottom: '24px',
+    right: '24px',
+    width: '380px',
+    height: '520px',
+    zIndex: 9999,
+    display: 'flex',
+    flexDirection: 'column',
+    backgroundColor: 'white',
+    borderRadius: '16px',
+    boxShadow: '0 8px 40px rgba(0,0,0,0.18)',
+    border: '1px solid #e5e7eb',
+  };
+
   return (
     <>
-      {/* Chat bubble button */}
+      {/* Floating bubble */}
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 w-14 h-14 bg-[#0158fe] hover:bg-[#012060] text-white rounded-full shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-110 z-50"
-          title="Chat with LL Assistant"
+          style={{
+            position: 'fixed',
+            bottom: '24px',
+            right: '24px',
+            width: '52px',
+            height: '52px',
+            borderRadius: '50%',
+            backgroundColor: '#0158fe',
+            color: 'white',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 20px rgba(1,88,254,0.45)',
+            zIndex: 9999,
+          }}
         >
-          <MessageCircle className="w-6 h-6" />
+          <MessageCircle size={22} />
         </button>
       )}
 
       {/* Chat window */}
       {isOpen && (
-        <div className={`fixed bottom-6 right-6 w-80 sm:w-96 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 flex flex-col transition-all duration-200 ${isMinimized ? 'h-14' : 'h-[500px]'}`}>
+        <div style={isDesktop ? desktopStyle : mobileStyle}>
+
           {/* Header */}
-          <div className="flex items-center gap-3 p-4 bg-[#0158fe] rounded-t-2xl text-white flex-shrink-0">
-            <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-              <Bot className="w-4 h-4" />
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px',
+            padding: '14px 16px',
+            backgroundColor: '#012060',
+            borderTopLeftRadius: isDesktop ? '16px' : 0,
+            borderTopRightRadius: isDesktop ? '16px' : 0,
+            flexShrink: 0,
+          }}>
+            <div style={{
+              width: '38px',
+              height: '38px',
+              borderRadius: '50%',
+              backgroundColor: '#0158fe',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}>
+              <Bot size={20} color="white" />
             </div>
-            <div className="flex-1">
-              <p className="font-semibold text-sm">LL Assistant</p>
-              <p className="text-xs text-blue-100">Academic Support · Lecture-Link</p>
+            <div style={{ flex: 1 }}>
+              <p style={{ color: 'white', fontWeight: 700, fontSize: '15px', margin: 0 }}>
+                LL Assistant
+              </p>
+              <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '12px', margin: 0 }}>
+                Academic Support · Lecture-Link
+              </p>
             </div>
-            <button
-              onClick={() => setIsMinimized(!isMinimized)}
-              className="p-1 hover:bg-white/20 rounded-lg transition-colors"
-            >
-              <Minimize2 className="w-4 h-4" />
-            </button>
             <button
               onClick={() => setIsOpen(false)}
-              className="p-1 hover:bg-white/20 rounded-lg transition-colors"
+              style={{
+                background: 'rgba(255,255,255,0.1)',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'white',
+                padding: '6px',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
             >
-              <X className="w-4 h-4" />
+              {isDesktop ? <X size={18} /> : <ChevronDown size={20} />}
             </button>
           </div>
 
-          {!isMinimized && (
-            <>
-              {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
-                {messages.map((msg, i) => (
-                  <div key={i} className={`flex gap-2 ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-                    <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${msg.role === 'assistant' ? 'bg-[#0158fe]' : 'bg-gray-300'}`}>
-                      {msg.role === 'assistant'
-                        ? <Bot className="w-3.5 h-3.5 text-white" />
-                        : <User className="w-3.5 h-3.5 text-gray-600" />
-                      }
-                    </div>
-                    <div className={`max-w-[78%] px-3 py-2 rounded-2xl text-sm leading-relaxed ${
-                      msg.role === 'assistant'
-                        ? 'bg-white text-gray-800 shadow-sm rounded-tl-sm'
-                        : 'bg-[#0158fe] text-white rounded-tr-sm'
-                    }`}>
-                      <span dangerouslySetInnerHTML={{ __html: formatMessage(msg.content) }} />
-                    </div>
-                  </div>
-                ))}
-                {isLoading && (
-                  <div className="flex gap-2 items-center">
-                    <div className="w-7 h-7 rounded-full bg-[#0158fe] flex items-center justify-center flex-shrink-0">
-                      <Bot className="w-3.5 h-3.5 text-white" />
-                    </div>
-                    <div className="bg-white px-3 py-2 rounded-2xl rounded-tl-sm shadow-sm">
-                      <Loader2 className="w-4 h-4 animate-spin text-[#0158fe]" />
-                    </div>
-                  </div>
-                )}
-                <div ref={messagesEndRef} />
-              </div>
-
-              {/* Input */}
-              <div className="p-3 border-t border-gray-100 bg-white rounded-b-2xl flex-shrink-0">
-                <div className="flex gap-2 items-center">
-                  <input
-                    ref={inputRef}
-                    type="text"
-                    value={input}
-                    onChange={e => setInput(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
-                    placeholder="Ask LL Assistant..."
-                    className="flex-1 text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#0158fe]/30 focus:border-[#0158fe]"
-                    disabled={isLoading}
-                  />
-                  <button
-                    onClick={sendMessage}
-                    disabled={!input.trim() || isLoading}
-                    className="w-9 h-9 bg-[#0158fe] hover:bg-[#012060] disabled:bg-gray-200 text-white rounded-xl flex items-center justify-center transition-colors flex-shrink-0"
-                  >
-                    <Send className="w-4 h-4" />
-                  </button>
+          {/* Messages */}
+          <div style={{
+            flex: 1,
+            overflowY: 'auto',
+            padding: '16px',
+            backgroundColor: '#f8f9ff',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+          }}>
+            {messages.map((msg, i) => (
+              <div key={i} style={{
+                display: 'flex',
+                gap: '8px',
+                flexDirection: msg.role === 'user' ? 'row-reverse' : 'row',
+                alignItems: 'flex-start',
+              }}>
+                <div style={{
+                  width: '30px',
+                  height: '30px',
+                  borderRadius: '50%',
+                  backgroundColor: msg.role === 'assistant' ? '#0158fe' : '#e5e7eb',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}>
+                  {msg.role === 'assistant'
+                    ? <Bot size={15} color="white" />
+                    : <User size={15} color="#6b7280" />
+                  }
                 </div>
-                <p className="text-xs text-gray-400 mt-1.5 text-center">Powered by Lecture-Link AI</p>
+                <div style={{
+                  maxWidth: '80%',
+                  padding: '10px 14px',
+                  borderRadius: msg.role === 'assistant'
+                    ? '4px 16px 16px 16px'
+                    : '16px 4px 16px 16px',
+                  backgroundColor: msg.role === 'assistant' ? 'white' : '#0158fe',
+                  color: msg.role === 'assistant' ? '#1f2937' : 'white',
+                  fontSize: '14px',
+                  lineHeight: '1.6',
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.07)',
+                }}>
+                  <span dangerouslySetInnerHTML={{ __html: formatMessage(msg.content) }} />
+                </div>
               </div>
-            </>
-          )}
+            ))}
+
+            {isLoading && (
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <div style={{
+                  width: '30px', height: '30px', borderRadius: '50%',
+                  backgroundColor: '#0158fe',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Bot size={15} color="white" />
+                </div>
+                <div style={{
+                  padding: '10px 16px',
+                  borderRadius: '4px 16px 16px 16px',
+                  backgroundColor: 'white',
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.07)',
+                  display: 'flex',
+                  gap: '4px',
+                  alignItems: 'center',
+                }}>
+                  {/* Animated dots */}
+                  {[0, 1, 2].map(i => (
+                    <div key={i} style={{
+                      width: '8px', height: '8px', borderRadius: '50%',
+                      backgroundColor: '#0158fe',
+                      animation: `bounce 1.2s ease-in-out ${i * 0.2}s infinite`,
+                    }} />
+                  ))}
+                </div>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* Input */}
+          <div style={{
+            padding: '12px 16px',
+            borderTop: '1px solid #e5e7eb',
+            backgroundColor: 'white',
+            borderBottomLeftRadius: isDesktop ? '16px' : 0,
+            borderBottomRightRadius: isDesktop ? '16px' : 0,
+            flexShrink: 0,
+          }}>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <input
+                ref={inputRef}
+                type="text"
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
+                placeholder="Ask LL Assistant..."
+                disabled={isLoading}
+                style={{
+                  flex: 1,
+                  fontSize: '14px',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '24px',
+                  padding: '10px 16px',
+                  outline: 'none',
+                  backgroundColor: '#f9fafb',
+                  color: '#1f2937',
+                }}
+              />
+              <button
+                onClick={sendMessage}
+                disabled={!input.trim() || isLoading}
+                style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '50%',
+                  backgroundColor: input.trim() && !isLoading ? '#0158fe' : '#e5e7eb',
+                  border: 'none',
+                  cursor: input.trim() && !isLoading ? 'pointer' : 'not-allowed',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  transition: 'background-color 0.2s',
+                }}
+              >
+                <Send size={16} color="white" />
+              </button>
+            </div>
+            <p style={{
+              fontSize: '11px',
+              color: '#9ca3af',
+              textAlign: 'center',
+              margin: '8px 0 0',
+            }}>
+              Powered by Lecture-Link AI
+            </p>
+          </div>
+
+          {/* Bounce animation */}
+          <style>{`
+            @keyframes bounce {
+              0%, 60%, 100% { transform: translateY(0); }
+              30% { transform: translateY(-6px); }
+            }
+          `}</style>
         </div>
       )}
     </>
