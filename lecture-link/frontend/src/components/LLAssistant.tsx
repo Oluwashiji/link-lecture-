@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { MessageCircle, X, Send, Bot, User, ChevronDown } from 'lucide-react';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -93,7 +94,6 @@ export function LLAssistant() {
       .replace(/\n/g, '<br/>');
   };
 
-  // ── MOBILE: full screen overlay ──
   const mobileStyle: React.CSSProperties = {
     position: 'fixed',
     top: 0,
@@ -106,7 +106,6 @@ export function LLAssistant() {
     backgroundColor: 'white',
   };
 
-  // ── DESKTOP: bottom-right floating panel ──
   const desktopStyle: React.CSSProperties = {
     position: 'fixed',
     bottom: '24px',
@@ -270,10 +269,11 @@ export function LLAssistant() {
                   gap: '4px',
                   alignItems: 'center',
                 }}>
-                  {/* Animated dots */}
                   {[0, 1, 2].map(i => (
                     <div key={i} style={{
-                      width: '8px', height: '8px', borderRadius: '50%',
+                      width: '8px',
+                      height: '8px',
+                      borderRadius: '50%',
                       backgroundColor: '#0158fe',
                       animation: `bounce 1.2s ease-in-out ${i * 0.2}s infinite`,
                     }} />
@@ -343,7 +343,6 @@ export function LLAssistant() {
             </p>
           </div>
 
-          {/* Bounce animation */}
           <style>{`
             @keyframes bounce {
               0%, 60%, 100% { transform: translateY(0); }
