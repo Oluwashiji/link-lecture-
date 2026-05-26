@@ -1,10 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Sidebar } from './Sidebar';
 import { Bell, Search, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
-import { useIsMobile } from '@/hooks/use-mobile';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -15,8 +14,19 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children, title, subtitle }: DashboardLayoutProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
   const { user } = useAuth();
-  const isMobile = useIsMobile();
+
+  useEffect(() => {
+    const handleResize = () => setIsDesktop(window.innerWidth >= 1024);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Close mobile menu when switching to desktop
+  useEffect(() => {
+    if (isDesktop) setMobileMenuOpen(false);
+  }, [isDesktop]);
 
   const navigate = (path: string) => {
     (window as any).navigate(path);
@@ -25,17 +35,22 @@ export function DashboardLayout({ children, title, subtitle }: DashboardLayoutPr
   return (
     <div className="min-h-screen bg-[#f8f9ff]">
 
-      {isMobile ? (
+      {isDesktop ? (
+        /* ── DESKTOP sidebar ── */
+        <Sidebar
+          isCollapsed={sidebarCollapsed}
+          onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+          isMobile={false}
+        />
+      ) : (
+        /* ── MOBILE sidebar + overlay ── */
         <>
-          {/* Mobile: dark overlay when sidebar is open */}
           {mobileMenuOpen && (
             <div
               className="fixed inset-0 bg-black/60 z-40"
               onClick={() => setMobileMenuOpen(false)}
             />
           )}
-
-          {/* Mobile: sidebar slides in/out */}
           <div
             style={{
               position: 'fixed',
@@ -54,30 +69,21 @@ export function DashboardLayout({ children, title, subtitle }: DashboardLayoutPr
             />
           </div>
         </>
-      ) : (
-        /* Desktop: always visible, collapsible */
-        <Sidebar
-          isCollapsed={sidebarCollapsed}
-          onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
-          isMobile={false}
-        />
       )}
 
-      {/* Main Content */}
+      {/* ── MAIN content ── */}
       <main
         style={{
-          marginLeft: isMobile ? 0 : sidebarCollapsed ? '80px' : '256px',
+          marginLeft: isDesktop ? (sidebarCollapsed ? '80px' : '256px') : '0px',
           transition: 'margin-left 0.3s ease-in-out',
         }}
       >
-        {/* Header */}
         <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
           <div className="px-4 sm:px-6 lg:px-8 py-4">
             <div className="flex items-center justify-between">
 
               <div className="flex items-center gap-4">
-                {/* Hamburger — only on mobile */}
-                {isMobile && (
+                {!isDesktop && (
                   <button
                     className="p-2 hover:bg-gray-100 rounded-lg"
                     onClick={() => setMobileMenuOpen(true)}
@@ -94,7 +100,7 @@ export function DashboardLayout({ children, title, subtitle }: DashboardLayoutPr
               </div>
 
               <div className="flex items-center gap-4">
-                {!isMobile && (
+                {isDesktop && (
                   <div className="flex items-center relative">
                     <Search className="absolute left-3 w-4 h-4 text-gray-400" />
                     <Input
@@ -109,12 +115,10 @@ export function DashboardLayout({ children, title, subtitle }: DashboardLayoutPr
                     />
                   </div>
                 )}
-
                 <Button variant="ghost" size="icon" className="relative">
                   <Bell className="w-5 h-5" />
                   <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
                 </Button>
-
                 <div className="w-10 h-10 bg-[#0158fe] rounded-full flex items-center justify-center text-white font-medium">
                   {user?.firstName?.[0]}{user?.lastName?.[0]}
                 </div>
@@ -124,7 +128,6 @@ export function DashboardLayout({ children, title, subtitle }: DashboardLayoutPr
           </div>
         </header>
 
-        {/* Page Content */}
         <div className="p-4 sm:p-6 lg:p-8">
           {children}
         </div>
