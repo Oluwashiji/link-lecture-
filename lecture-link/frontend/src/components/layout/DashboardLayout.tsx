@@ -26,9 +26,6 @@ export function DashboardLayout({ children, title, subtitle }: DashboardLayoutPr
     if (isDesktop) setMobileMenuOpen(false);
   }, [isDesktop]);
 
-  const navigate = (path: string) => {
-    (window as any).navigate(path);
-  };
 
   return (
     <div className="min-h-screen bg-[#f8f9ff]">
