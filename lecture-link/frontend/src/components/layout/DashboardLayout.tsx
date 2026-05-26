@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Sidebar } from './Sidebar';
-import { Bell, Search, Menu } from 'lucide-react';
+import { Bell, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface DashboardLayoutProps {
@@ -23,7 +22,6 @@ export function DashboardLayout({ children, title, subtitle }: DashboardLayoutPr
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Close mobile menu when switching to desktop
   useEffect(() => {
     if (isDesktop) setMobileMenuOpen(false);
   }, [isDesktop]);
@@ -36,14 +34,12 @@ export function DashboardLayout({ children, title, subtitle }: DashboardLayoutPr
     <div className="min-h-screen bg-[#f8f9ff]">
 
       {isDesktop ? (
-        /* ── DESKTOP sidebar ── */
         <Sidebar
           isCollapsed={sidebarCollapsed}
           onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
           isMobile={false}
         />
       ) : (
-        /* ── MOBILE sidebar + overlay ── */
         <>
           {mobileMenuOpen && (
             <div
@@ -71,55 +67,42 @@ export function DashboardLayout({ children, title, subtitle }: DashboardLayoutPr
         </>
       )}
 
-      {/* ── MAIN content ── */}
       <main
         style={{
           marginLeft: isDesktop ? (sidebarCollapsed ? '80px' : '256px') : '0px',
           transition: 'margin-left 0.3s ease-in-out',
         }}
       >
+        {/* Header */}
         <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
-          <div className="px-4 sm:px-6 lg:px-8 py-4">
+          <div className="px-4 py-3">
             <div className="flex items-center justify-between">
 
-              <div className="flex items-center gap-4">
+              {/* Left: hamburger + title */}
+              <div className="flex items-center gap-3 min-w-0">
                 {!isDesktop && (
                   <button
-                    className="p-2 hover:bg-gray-100 rounded-lg"
                     onClick={() => setMobileMenuOpen(true)}
+                    className="p-2 hover:bg-gray-100 rounded-lg flex-shrink-0"
                   >
-                    <Menu className="w-6 h-6 text-[#012060]" />
+                    <Menu className="w-5 h-5 text-[#012060]" />
                   </button>
                 )}
-                <div>
-                  <h1 className="text-xl sm:text-2xl font-bold text-[#012060]">{title}</h1>
+                <div className="min-w-0">
+                  <h1 className="text-lg font-bold text-[#012060] truncate">{title}</h1>
                   {subtitle && (
-                    <p className="text-sm text-gray-500">{subtitle}</p>
+                    <p className="text-xs text-gray-500 truncate">{subtitle}</p>
                   )}
                 </div>
               </div>
 
-              <div className="flex items-center gap-4">
-                {isDesktop && (
-                  <div className="flex items-center relative">
-                    <Search className="absolute left-3 w-4 h-4 text-gray-400" />
-                    <Input
-                      type="text"
-                      placeholder="Quick search..."
-                      className="pl-10 w-64"
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          navigate(`/search?q=${(e.target as HTMLInputElement).value}`);
-                        }
-                      }}
-                    />
-                  </div>
-                )}
-                <Button variant="ghost" size="icon" className="relative">
-                  <Bell className="w-5 h-5" />
+              {/* Right: bell + avatar */}
+              <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                <Button variant="ghost" size="icon" className="relative w-9 h-9">
+                  <Bell className="w-4 h-4" />
                   <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />
                 </Button>
-                <div className="w-10 h-10 bg-[#0158fe] rounded-full flex items-center justify-center text-white font-medium">
+                <div className="w-9 h-9 bg-[#0158fe] rounded-full flex items-center justify-center text-white font-medium text-sm flex-shrink-0">
                   {user?.firstName?.[0]}{user?.lastName?.[0]}
                 </div>
               </div>
@@ -128,7 +111,8 @@ export function DashboardLayout({ children, title, subtitle }: DashboardLayoutPr
           </div>
         </header>
 
-        <div className="p-4 sm:p-6 lg:p-8">
+        {/* Page Content */}
+        <div className="p-4">
           {children}
         </div>
       </main>
