@@ -1,7 +1,7 @@
 /**
  * LECTURE-LINK Backend Server
  * Features: Smart Search, LL Assistant (AI Chatbot), PDF Viewer, RBAC
- * AI: OpenRouter (primary) with an offline rule-based fallback, see services/chatService.js
+ * AI: OpenRouter (primary) with an offline rule-based fallback — see services/chatService.js
  */
 
 const express = require('express');
@@ -14,19 +14,38 @@ const fs = require('fs');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const morgan = require('morgan');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const chatService = require('./services/chatService');
 require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'linkLecture2024secretkey';
 
-// Initialise Gemini client
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
-
 // Middleware
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
-app.use(cors({ origin: process.env.FRONTEND_URL || '*', credentials: true }));
+
+// Reflect the calling origin instead of using a literal '*'. Browsers treat
+// `Access-Control-Allow-Origin: *` together with `Access-Control-Allow-Credentials: true`
+// as an invalid combination, which can cause the browser to silently block the
+// response from ever reaching the frontend JS (fetch() rejects with a generic
+// "Failed to fetch" and no server-side error is ever logged).
+const allowedOrigins = (process.env.FRONTEND_URL || '')
+  .split(',')
+  .map(o => o.trim())
+  .filter(Boolean);
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow non-browser requests (curl, server-to-server, health checks) with no Origin header.
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    console.error(`CORS blocked request from origin: ${origin}`);
+    return callback(null, false);
+  },
+  credentials: true,
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
@@ -586,18 +605,12 @@ app.get('/api/search', authenticateToken, (req, res) => {
   res.json({ materials, courses });
 });
 
-// ==================== LL ASSISTANT (GEMINI) ====================
+// ==================== LL ASSISTANT (OpenRouter with offline fallback) ====================
 
 app.post('/api/chat', authenticateToken, chatLimiter, async (req, res) => {
   try {
     const { message, conversationHistory = [] } = req.body;
     if (!message?.trim()) return res.status(400).json({ message: 'Message is required' });
-
-    if (!process.env.GEMINI_API_KEY) {
-      return res.status(503).json({
-        message: 'LL Assistant is not configured. Please add the GEMINI_API_KEY environment variable.'
-      });
-    }
 
     // Build context from repository — personalised to the user's dept/level if student
     const currentUser = usersDB.findById(req.user.id);
@@ -639,52 +652,35 @@ Your responsibilities:
 
 ${repoContext}
 
-When students ask about materials, reference what's available above. Keep responses clear and concise. Never mention Gemini or Google — you are LL Assistant, built into Lecture-Link.`;
+When students ask about materials, reference what's available above. Keep responses clear and concise. Never mention OpenRouter, Gemini, or any underlying AI provider — you are LL Assistant, built into Lecture-Link.`;
 
-    // Build history — Gemini requires it to start with 'user' role
-    const rawHistory = conversationHistory
-      .slice(-6)
-      .map(m => ({
-        role: m.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: m.content }]
-      }));
-
-    // Drop any leading model messages
-    while (rawHistory.length > 0 && rawHistory[0].role === 'model') {
-      rawHistory.shift();
-    }
-
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-1.5-flash',
-      systemInstruction: systemPrompt,
+    // ChatService tries OpenRouterProvider first and, on ANY failure
+    // (missing/invalid key, network error, timeout, quota, rate limit,
+    // server error, or any unexpected exception), transparently falls back
+    // to OfflineProvider. It never throws, so this route always has a reply.
+    const { reply, provider } = await chatService.getReply({
+      message,
+      conversationHistory: conversationHistory.slice(-6),
+      systemPrompt,
     });
-
-    const chat = model.startChat({ history: rawHistory });
-    const result = await chat.sendMessage(message);
-    const reply  = result.response.text();
 
     chatLogsDB.create({
       userId: req.user.id, userRole: req.user.role,
-      message, reply, timestamp: new Date().toISOString()
+      message, reply, provider, timestamp: new Date().toISOString()
     });
 
+    // `provider` is logged/stored for internal debugging only and is
+    // intentionally NOT sent to the frontend, so the UI stays identical
+    // regardless of which provider actually answered.
     res.json({ reply, role: 'assistant' });
 
   } catch (e) {
-    console.error('Chat error full:', e?.message, e?.status, e?.statusText);
-    const msg    = e?.message || '';
-    const status = e?.status || e?.response?.status || 0;
-
-    if (status === 400 || msg.includes('API_KEY') || msg.toLowerCase().includes('api key') || msg.toLowerCase().includes('invalid')) {
-      return res.status(503).json({ message: 'LL Assistant configuration error. Check your GEMINI_API_KEY.' });
-    }
-    if (status === 403) {
-      return res.status(503).json({ message: 'LL Assistant configuration error. The API key is invalid or lacks permissions.' });
-    }
-    if (status === 429) {
-      return res.status(429).json({ message: 'Too many requests. Please wait a moment and try again.' });
-    }
-    res.status(500).json({ message: `LL Assistant error: ${msg || 'Unknown error. Check Render logs.'}` });
+    // With ChatService guaranteeing a reply, this catch block should only
+    // ever trigger for something outside the AI call itself (e.g. a DB
+    // write failure). Fail safe with a generic, non-technical message.
+    console.error('Chat route error:', e?.message);
+    console.error(e?.stack || e);
+    res.status(500).json({ message: "I'm having trouble responding right now. Please try again." });
   }
 });
 
@@ -731,7 +727,8 @@ app.get('/api/analytics/lecturer', authenticateToken, authorize('lecturer', 'adm
 app.get('/api/health', (req, res) => res.json({
   status:      'OK',
   timestamp:   new Date().toISOString(),
-  llAssistant: !!process.env.GEMINI_API_KEY
+  llAssistant: true, // always available — falls back to offline mode if OpenRouter is unavailable
+  aiProviderConfigured: !!(process.env.OPENROUTER_API_KEY || '').trim()
 }));
 
 app.use((req, res) => res.status(404).json({ message: 'Route not found' }));
@@ -746,7 +743,7 @@ app.use((err, req, res, next) => {
 app.listen(PORT, () => {
   console.log(`\n╔════════════════════════════════════════╗`);
   console.log(`║   LECTURE-LINK API Running on ${PORT}    ║`);
-  console.log(`║   LL Assistant: ${process.env.GEMINI_API_KEY ? '✓ Gemini Ready  ' : '✗ No API Key    '}       ║`);
+  console.log(`║   LL Assistant: ${(process.env.OPENROUTER_API_KEY || '').trim() ? '✓ OpenRouter + offline fallback' : '✓ Offline mode only (no OPENROUTER_API_KEY)'}`);
   console.log(`╚════════════════════════════════════════╝\n`);
   initializeDefaultData();
 });
