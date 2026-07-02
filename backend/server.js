@@ -1,7 +1,7 @@
 /**
  * LECTURE-LINK Backend Server
  * Features: Smart Search, LL Assistant (AI Chatbot), PDF Viewer, RBAC
- * AI: Google Gemini (gemini-1.5-flash) — free tier
+ * AI: OpenRouter (primary) with an offline rule-based fallback, see services/chatService.js
  */
 
 const express = require('express');
